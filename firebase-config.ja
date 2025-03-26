@@ -1,14 +1,22 @@
+// استيراد الوظائف الضرورية من Firebase SDK
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
 // تهيئة Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyCcuq4VdU61kuzhGh1Ul_x1990ZMog7R28",
     authDomain: "heychat-773e5.firebaseapp.com",
     projectId: "heychat-773e5",
-    storageBucket: "heychat-773e5.firebasestorage.app",
+    storageBucket: "heychat-773e5.appspot.com",
     messagingSenderId: "659994398688",
     appId: "1:659994398688:web:c0abcf675ad6668b7fe585",
     measurementId: "G-9DH66R4PTL"
 };
 
-// تشغيل Firebase
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+// تهيئة التطبيق
+const app = initializeApp(firebaseConfig);
+
+// تهيئة auth و firestore
+const auth = getAuth(app);
+const db = getFirestore(app);
