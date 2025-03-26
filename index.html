@@ -89,5 +89,70 @@
 
     <script type="module" src="script.js"></script>
 
+    <!-- إدارة روابط Firebase للتحقق واستعادة كلمة المرور -->
+    <script type="module">
+        import { getAuth, applyActionCode, confirmPasswordReset } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode');
+        const oobCode = urlParams.get('oobCode');
+        const auth = getAuth();
+
+        if (mode && oobCode) {
+            switch (mode) {
+                case 'resetPassword':
+                    handlePasswordReset(auth, oobCode);
+                    break;
+
+                case 'verifyEmail':
+                    handleEmailVerification(auth, oobCode);
+                    break;
+
+                default:
+                    console.error("إجراء غير معروف:", mode);
+            }
+        }
+
+        function handlePasswordReset(auth, oobCode) {
+            const newPassword = prompt("أدخل كلمة المرور الجديدة:");
+            if (newPassword) {
+                confirmPasswordReset(auth, oobCode, newPassword)
+                    .then(() => showMessage("تم تعيين كلمة المرور الجديدة بنجاح"))
+                    .catch(error => showMessage("خطأ: " + error.message, "error"));
+            }
+        }
+
+        function handleEmailVerification(auth, oobCode) {
+            applyActionCode(auth, oobCode)
+                .then(() => showMessage("تم تأكيد البريد الإلكتروني بنجاح"))
+                .catch(error => showMessage("خطأ: " + error.message, "error"));
+        }
+
+        function showMessage(message, type = "success") {
+            const messageBox = document.createElement("div");
+            messageBox.textContent = message;
+            messageBox.className = `message-box ${type}`;
+            document.body.appendChild(messageBox);
+            setTimeout(() => messageBox.remove(), 3000);
+        }
+    </script>
+
+    <style>
+        .message-box {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            color: #fff;
+            background-color: green;
+        }
+        .message-box.error {
+            background-color: red;
+        }
+    </style>
+
 </body>
 </html>
