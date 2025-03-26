@@ -1,10 +1,11 @@
-import { auth, db, signInWithPopup, GoogleAuthProvider, collection, addDoc, query, orderBy, onSnapshot } from "./firebaseConfig.js";
+import { auth, db, signInWithPopup, GoogleAuthProvider, collection, addDoc, query, orderBy, onSnapshot, updateDoc, doc, deleteDoc, where } from "./firebaseConfig.js";
 
 // عند تحميل الصفحة، تحقق من تسجيل الدخول ثم حمّل البيانات
 document.addEventListener("DOMContentLoaded", function () {
     checkLogin();
     loadOnlineUsers();
     loadGroups();
+    loadMessages(); // تحميل الرسائل للمجموعات أو المحادثات العامة
 });
 
 // التحقق من تسجيل الدخول
@@ -48,43 +49,92 @@ function loginWithGoogle() {
 }
 
 // إرسال رسالة إلى Firestore
-async function sendMessage() {
+async function sendMessage(groupId = null) {
     const messageInput = document.getElementById("messageInput");
     if (!messageInput.value.trim()) return;
 
+    const messageData = {
+        user: localStorage.getItem("currentUser"),
+        text: messageInput.value,
+        timestamp: new Date(),
+        groupId: groupId || "general",  // إذا لم يتم تحديد مجموعة، تكون الرسالة للمجموعة العامة
+    };
+
     try {
-        await addDoc(collection(db, "messages"), {
-            user: localStorage.getItem("currentUser"),
-            text: messageInput.value,
-            timestamp: new Date(),
-        });
+        await addDoc(collection(db, "messages"), messageData);
         messageInput.value = "";
     } catch (error) {
         console.error("خطأ في إرسال الرسالة:", error);
+        showError("حدث خطأ أثناء إرسال الرسالة.");
     }
 }
 
 // تحميل الرسائل من Firestore في الوقت الفعلي
-function loadMessages() {
+function loadMessages(groupId = null) {
     const chatBox = document.getElementById("chatBox");
-    const q = query(collection(db, "messages"), orderBy("timestamp"));
+    const q = query(
+        collection(db, "messages"),
+        orderBy("timestamp"),
+        groupId ? where("groupId", "==", groupId) : []
+    );
 
     onSnapshot(q, (snapshot) => {
         chatBox.innerHTML = "";
         snapshot.forEach((doc) => {
             let msg = doc.data();
-            let msgElement = document.createElement("p");
+            let msgElement = document.createElement("div");
             msgElement.textContent = `${msg.user}: ${msg.text}`;
+
+            // إضافة أزرار تعديل وحذف
+            let editBtn = document.createElement("button");
+            editBtn.textContent = "تعديل";
+            editBtn.onclick = () => {
+                let newText = prompt("أدخل النص الجديد:", msg.text);
+                if (newText) {
+                    editMessage(doc.id, newText);
+                }
+            };
+
+            let deleteBtn = document.createElement("button");
+            deleteBtn.textContent = "حذف";
+            deleteBtn.onclick = () => deleteMessage(doc.id);
+
+            msgElement.appendChild(editBtn);
+            msgElement.appendChild(deleteBtn);
+
             chatBox.appendChild(msgElement);
         });
         chatBox.scrollTop = chatBox.scrollHeight;
     });
 }
 
+// تعديل الرسالة
+async function editMessage(messageId, newText) {
+    try {
+        const messageRef = doc(db, "messages", messageId);
+        await updateDoc(messageRef, {
+            text: newText,
+        });
+    } catch (error) {
+        console.error("خطأ في تعديل الرسالة:", error);
+        showError("حدث خطأ أثناء تعديل الرسالة.");
+    }
+}
+
+// حذف الرسالة
+async function deleteMessage(messageId) {
+    try {
+        await deleteDoc(doc(db, "messages", messageId));
+    } catch (error) {
+        console.error("خطأ في حذف الرسالة:", error);
+        showError("حدث خطأ أثناء حذف الرسالة.");
+    }
+}
+
 // عرض المستخدمين المتصلين (مثال: من Firestore)
 function loadOnlineUsers() {
-    const usersRef = collection(db, "users"); // على سبيل المثال إذا كانت بيانات المستخدمين في collection "users"
-    const q = query(usersRef); // يمكنك إضافة أي استعلامات إضافية هنا مثل التصفية أو الترتيب
+    const usersRef = collection(db, "users");
+    const q = query(usersRef);
 
     onSnapshot(q, (snapshot) => {
         const usersList = document.getElementById("onlineUsers");
@@ -92,17 +142,25 @@ function loadOnlineUsers() {
         snapshot.forEach((doc) => {
             let user = doc.data();
             let li = document.createElement("li");
-            li.textContent = user.name;
+            li.textContent = `${user.name} - ${user.online ? "موجود" : "غير موجود"}`;
             li.onclick = () => alert("بدء محادثة مع " + user.name);
             usersList.appendChild(li);
         });
     });
 }
 
+// تحديث حالة الاتصال للمستخدمين
+function updateOnlineStatus(status) {
+    const userRef = doc(db, "users", localStorage.getItem("currentUser"));
+    updateDoc(userRef, {
+        online: status,
+    });
+}
+
 // عرض القروبات (مثال: من Firestore)
 function loadGroups() {
-    const groupsRef = collection(db, "groups"); // على سبيل المثال إذا كانت بيانات القروبات في collection "groups"
-    const q = query(groupsRef); // يمكنك إضافة أي استعلامات إضافية هنا مثل التصفية أو الترتيب
+    const groupsRef = collection(db, "groups");
+    const q = query(groupsRef);
 
     onSnapshot(q, (snapshot) => {
         const groupsList = document.getElementById("groupsList");
@@ -111,10 +169,19 @@ function loadGroups() {
             let group = doc.data();
             let li = document.createElement("li");
             li.textContent = group.name;
-            li.onclick = () => alert("تم الانضمام إلى " + group.name);
+            li.onclick = () => loadMessages(group.id); // فتح الرسائل الخاصة بالقروب
             groupsList.appendChild(li);
         });
     });
+}
+
+// عرض رسالة خطأ
+function showError(message) {
+    const messageBox = document.createElement("div");
+    messageBox.textContent = message;
+    messageBox.className = "message-box error";
+    document.body.appendChild(messageBox);
+    setTimeout(() => messageBox.remove(), 3000);
 }
 
 // البحث عن مستخدم (مثال)
