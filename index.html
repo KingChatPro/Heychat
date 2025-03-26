@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دردشة فورية</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- شاشة تسجيل الدخول -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-box">
+            <h2>مرحبًا بك في الدردشة الفورية</h2>
+            <input type="text" id="username" placeholder="أدخل اسم المستخدم">
+            <button onclick="login()">دخول</button>
+            <hr>
+            <button class="google-btn" onclick="loginWithGoogle()">تسجيل الدخول بحساب Google</button>
+        </div>
+    </div>
+
+    <!-- واجهة الدردشة -->
+    <div id="chatApp" class="chat-app hidden">
+        <!-- الشريط الجانبي -->
+        <div class="sidebar">
+            <h3>القائمة</h3>
+            <button onclick="showOnlineUsers()">المتصلون</button>
+            <button onclick="showGroups()">القروبات</button>
+            <button onclick="openChat()">دردشة عشوائية</button>
+            <button onclick="openSettings()">الإعدادات</button>
+
+            <h3>المستخدمون المتصلون</h3>
+            <ul id="onlineUsers"></ul>
+
+            <h3>القروبات</h3>
+            <ul id="groupsList"></ul>
+        </div>
+
+        <!-- منطقة الدردشة -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <h2 id="chatTitle">الدردشة</h2>
+                <div class="search-box">
+                    <input type="text" id="searchUser" placeholder="بحث عن مستخدم...">
+                    <button onclick="searchUser()">🔍</button>
+                </div>
+            </div>
+
+            <div class="chat-box" id="chatBox">
+                <!-- الرسائل ستظهر هنا -->
+            </div>
+
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="اكتب رسالة...">
+                <button onclick="sendMessage()">إرسال</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- تحميل Firebase والموديل -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCcuq4VdU61kuzhGh1Ul_x1990ZMog7R28",
+            authDomain: "heychat-773e5.firebaseapp.com",
+            projectId: "heychat-773e5",
+            storageBucket: "heychat-773e5.appspot.com",
+            messagingSenderId: "659994398688",
+            appId: "1:659994398688:web:c0abcf675ad6668b7fe585",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getFirestore(app);
+
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.GoogleAuthProvider = GoogleAuthProvider;
+        window.signInWithPopup = signInWithPopup;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.query = query;
+        window.orderBy = orderBy;
+        window.onSnapshot = onSnapshot;
+    </script>
+
+    <script type="module" src="script.js"></script>
+
+</body>
+</html>
